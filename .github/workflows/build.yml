@@ -1,0 +1,51 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 3
+      - name: Zip SP
+        uses: montudor/action-zip@v1
+        with:
+          args: zip -qq -r SlamminToolsSP.zip SP
+      - name: Zip MP
+        uses: montudor/action-zip@v1
+        with:
+          args: zip -qq -r SlamminToolsMP.zip MP
+      - name: Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: |
+            *.zip
+  publish:
+    name: Publish
+    needs: Build
+    environment:
+      name: 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: artifacts
+      - name: Release
+        uses: ncipollo/release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          draft: false
+          prerelease: false
+          artifacts: |
+            *.zip
